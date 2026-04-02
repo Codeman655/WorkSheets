@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worksheet Generator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --primary-dark: #357abd;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #333;
+            --border: #ddd;
+            --accent: #ff6b6b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+
+        /* Generator Page Styles */
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button.generate-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button.generate-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button.generate-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Worksheet Styles */
+        .worksheet-page {
+            background: white;
+            min-height: 100vh;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .worksheet-header {
+            border-bottom: 2px solid #000;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .student-info {
+            font-size: 18px;
+        }
+
+        .student-info span {
+            display: inline-block;
+            border-bottom: 1px solid #000;
+            width: 200px;
+            margin-left: 10px;
+        }
+
+        /* Grid Layouts for Assignments */
+        .math-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px 20px;
+        }
+
+        .math-problem {
+            font-size: 24px;
+            text-align: right;
+            width: 120px;
+            margin: 0 auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .math-line {
+            border-top: 2px solid #000;
+            margin-top: 5px;
+            height: 30px;
+        }
+
+        .counting-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px dashed #ccc;
+        }
+
+        .shapes-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .shape {
+            width: 30px;
+            height: 30px;
+            background: #eee;
+            border: 1px solid #333;
+        }
+
+        .matching-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+        }
+
+        .matching-column {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .matching-item {
+            padding: 10px 20px;
+            border: 1px solid #000;
+            border-radius: 4px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .reading-passage {
+            line-height: 1.8;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .reading-question {
+            margin-bottom: 20px;
+        }
+
+        .reading-line {
+            border-bottom: 1px solid #000;
+            height: 30px;
+            margin-top: 10px;
+        }
+
+        /* UI Elements */
+        .back-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        /* Print Logic */
+        @media print {
+            body { background: white; }
+            .container, .back-btn { display: none !important; }
+            .worksheet-page { padding: 0; margin: 0; }
+            @page { margin: 2cm; }
+        }
+
+        /* Animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const SYMBOLS = ['★', '●', '■', '▲', '♥', '♣', '♦', '♠'];
+        
+        const WORD_POOLS = [
+            { len: 2, words: ['at', 'is', 'it', 'up', 'my', 'go', 'me', 'no'] },
+            { len: 3, words: ['cat', 'dog', 'sun', 'box', 'hat', 'run', 'hop', 'red', 'big', 'ten'] },
+            { len: 4, words: ['blue', 'fish', 'jump', 'play', 'tree', 'book', 'star', 'frog', 'bird', 'fast'] },
+            { len: 5, words: ['apple', 'green', 'water', 'house', 'small', 'bread', 'clock', 'paper', 'smile', 'table'] },
+            { len: 6, words: ['friend', 'school', 'yellow', 'orange', 'winter', 'summer', 'garden', 'purple', 'rabbit', 'flower'] },
+            { len: 7, words: ['morning', 'weather', 'teacher', 'picture', 'kitchen', 'library', 'playing', 'brother', 'evening', 'rainbow'] },
+            { len: 8, words: ['birthday', 'mountain', 'together', 'standard', 'children', 'dinosaur', 'treasure', 'keyboard', 'elephant', 'exercise'] },
+            { len: 9, words: ['beautiful', 'different', 'excellent', 'breakfast', 'afternoon', 'adventure', 'classroom', 'happiness', 'important', 'spaceship'] },
+            { len: 10, words: ['everything', 'playground', 'strawberry', 'basketball', 'understand', 'friendship', 'collection', 'instrument', 'volleyball', 'invitation'] }
+        ];
+        
+        const PASSAGES = {
+            kindergarten: [
+                { text: "The cat is red. The cat is big. The cat can run. I like the cat.", questions: ["What color is the cat?", "What can the cat do?"] },
+                { text: "I see a blue bird. The bird is in the tree. It likes to sing a song.", questions: ["What color is the bird?", "Where is the bird?"] },
+                { text: "My dog is brown. He has a little ball. He likes to play in the sun.", questions: ["What color is the dog?", "What does he like to play with?"] },
+                { text: "The sun is hot. The sun is yellow. It is up in the sky.", questions: ["What color is the sun?", "Where is the sun?"] },
+                { text: "A frog is green. It lives in the pond. The frog can jump high.", questions: ["Where does the frog live?", "What can the frog do?"] },
+                { text: "Look at the red bus. The bus is big. Many kids are on the bus.", questions: ["What color is the bus?", "Who is on the bus?"] },
+                { text: "I have a new hat. My hat is pink. I wear it on my head.", questions: ["What color is the hat?", "Where do I wear it?"] },
+                { text: "The pig is fat. The pig is in the mud. It is a happy pig.", questions: ["Is the pig thin or fat?", "Where is the pig?"] },
+                { text: "I see a little bug. The bug is black. It is on a green leaf.", questions: ["What color is the bug?", "What is the bug on?"] },
+                { text: "The box is big. A toy is in the box. I can open the box.", questions: ["Is the box big or small?", "What is in the box?"] },
+                { text: "Ten fish are in the water. They are fast. They like to swim.", questions: ["How many fish are there?", "What do they like to do?"] },
+                { text: "The apple is sweet. It is a red apple. I eat it for a snack.", questions: ["How does the apple taste?", "When do I eat it?"] },
+                { text: "My mom is nice. She has a big hug. I love my mom.", questions: ["Who is nice?", "What does she have for me?"] },
+                { text: "The rain is wet. The sky is gray. I have an umbrella.", questions: ["How does the rain feel?", "What do I have?"] },
+                { text: "A star is bright. It is far away. I see it at night.", questions: ["When do I see the star?", "Is it close or far?"] },
+                { text: "The milk is cold. It is in a white cup. I drink the milk.", questions: ["How does the milk feel?", "What color is the cup?"] },
+                { text: "I have a red sled. The snow is white. I go down the hill.", questions: ["What color is the sled?", "Where do I go?"] },
+                { text: "The bee is small. It goes buzz. It is on a yellow flower.", questions: ["What sound does the bee make?", "Where is the bee?"] },
+                { text: "My dad has a blue car. He drives to work. The car is fast.", questions: ["What color is the car?", "Where does dad go?"] },
+                { text: "The cake is good. It has pink icing. It is my birthday.", questions: ["What color is the icing?", "Why is there cake?"] }
+            ],
+            firstGrade: [
+                { text: "Sam has a green apple. He wants to go to the park with his friend. They will play on the grass under the big tree.", questions: ["What does Sam have?", "Where is Sam going?", "What will they do?"] },
+                { text: "The school bus arrives at eight o'clock. Ben puts on his backpack and waves to his mom. He is excited to learn today.", questions: ["What time does the bus come?", "What does Ben wear?", "How does Ben feel?"] },
+                { text: "A little spider spun a web in the corner. It waited for a fly to come by. The web was strong and sticky.", questions: ["Where did the spider spin a web?", "What was the spider waiting for?", "Describe the web."] },
+                { text: "Molly has a pet rabbit named Hops. Hops likes to eat carrots and clover. He has long ears and a soft tail.", questions: ["What is the rabbit's name?", "What does Hops like to eat?", "Describe Hops' ears."] },
+                { text: "The garden is full of flowers. There are red roses and yellow tulips. Butterflies fly from one flower to another.", questions: ["What types of flowers are in the garden?", "What color are the tulips?", "What is flying in the garden?"] },
+                { text: "It is a very windy day. The leaves are blowing off the trees. Tim is trying to fly his kite in the backyard.", questions: ["What kind of day is it?", "What is happening to the leaves?", "Where is Tim?"] },
+                { text: "Jill went to the library to find a book about space. She found one with pictures of the moon and stars.", questions: ["Where did Jill go?", "What kind of book did she want?", "What was in the book?"] },
+                { text: "Breakfast is the most important meal. Leo eats eggs and toast every morning. He also drinks a glass of orange juice.", questions: ["What does Leo eat for breakfast?", "What does he drink?", "How often does he eat this?"] },
+                { text: "The fire engine is loud and bright red. It has a long ladder on the side. The firefighters wear heavy boots.", questions: ["What color is the fire engine?", "What is on the side of the truck?", "What do the firefighters wear?"] },
+                { text: "Winter is cold and snowy. We wear coats, hats, and mittens to stay warm. We like to build snowmen in the yard.", questions: ["What is the weather like in winter?", "Name three things we wear to stay warm.", "What do we build?"] },
+                { text: "The farm has many animals. The cows give milk and the hens lay eggs. The farmer works hard every day.", questions: ["What do the cows provide?", "What do the hens do?", "Who works on the farm?"] },
+                { text: "Pizza is my favorite food. I like cheese, pepperoni, and mushrooms on mine. We usually have it on Friday nights.", questions: ["What is the favorite food?", "Name three toppings mentioned.", "When do they eat it?"] },
+                { text: "The moon shines at night. It does not have its own light; it reflects the sun. Sometimes it looks like a circle.", questions: ["When does the moon shine?", "Where does the moon's light come from?", "What shape can it look like?"] },
+                { text: "An elephant is a very large animal. It has a long trunk and big ears. Elephants like to eat grass and leaves.", questions: ["How big is an elephant?", "What two body parts are mentioned?", "What do they eat?"] },
+                { text: "The beach is sandy and warm. We found shells and built a sandcastle. The water was salty and blue.", questions: ["What did they find at the beach?", "What did they build?", "What color was the water?"] },
+                { text: "A seed needs water and sun to grow. First it grows roots, then a stem. Finally, it becomes a plant with leaves.", questions: ["What two things does a seed need?", "What grows first?", "What happens at the end?"] },
+                { text: "The library is a quiet place. You can borrow books to read at home. Remember to return them on time.", questions: ["How should you behave in a library?", "What can you do with the books?", "What must you remember?"] },
+                { text: "Bikes are fun to ride. You should always wear a helmet for safety. My bike has a bell and a basket.", questions: ["Why do you wear a helmet?", "What two things are on the bike?", "Are bikes fun?"] },
+                { text: "Clouds are in the sky. Some are white and fluffy like cotton. Gray clouds usually mean rain is coming.", questions: ["Where are the clouds?", "What do white clouds look like?", "What do gray clouds mean?"] },
+                { text: "The baker makes fresh bread. It smells wonderful in the shop. He also makes cookies and cupcakes.", questions: ["What does the baker make?", "How does the shop smell?", "What other treats are mentioned?"] }
+            ],
+            secondGrade: [
+                { text: "Last Saturday, Maya went to the beach with her family. She found three shiny shells and a small crab. The sun was very hot, so they all went for a swim in the blue ocean. After swimming, they ate sandwiches for lunch.", questions: ["Who did Maya go to the beach with?", "What did Maya find?", "Why did they go for a swim?", "What did they eat for lunch?"] },
+                { text: "The Great Barrier Reef is the largest coral reef system in the world. it is located in the Coral Sea, off the coast of Australia. Many different types of fish and sea creatures live there in the colorful coral.", questions: ["What is the Great Barrier Reef?", "Where is it located?", "What lives there?", "Why is the reef important?"] },
+                { text: "Honeybees are very busy insects. They fly from flower to flower to collect nectar. They use the nectar to make honey in their hives. Bees also help plants grow by carrying pollen between them.", questions: ["What do bees collect from flowers?", "Where do they make honey?", "How do bees help plants?", "What kind of insects are they?"] },
+                { text: "Thomas Edison was a famous inventor. He is best known for inventing the light bulb. He also worked on the phonograph and motion picture camera. Edison believed that hard work was the key to success.", questions: ["Who was Thomas Edison?", "What is his most famous invention?", "Name two other things he worked on.", "What did he believe was the key to success?"] },
+                { text: "The water cycle is the process of water moving around the Earth. Water evaporates from the ocean, turns into clouds, and falls as rain or snow. This cycle repeats forever to give us fresh water.", questions: ["What is the water cycle?", "What happens after water evaporates?", "In what two forms does water fall?", "Why is this cycle important?"] },
+                { text: "Tropical rainforests are home to more than half of the world's plants and animals. They are located near the equator where it is always warm and rainy. These forests help keep the Earth's air clean.", questions: ["Where are rainforests usually located?", "What is the weather like there?", "How much of the world's wildlife lives there?", "How do they help the Earth?"] },
+                { text: "The solar system has eight planets that travel around the Sun. Earth is the third planet and is the only one known to have life. Mars is called the Red Planet because of its red soil.", questions: ["How many planets are in our solar system?", "What is special about Earth?", "Which planet is known as the Red Planet?", "Why is it called that?"] },
+                { text: "Ancient Egyptians lived along the Nile River thousands of years ago. They built giant pyramids as tombs for their kings. They also developed a form of writing called hieroglyphics using pictures.", questions: ["Where did Ancient Egyptians live?", "Why did they build pyramids?", "What was their form of writing called?", "What did they use for writing?"] },
+                { text: "Volcanoes are mountains that can erupt with hot lava. Lava is melted rock that comes from deep inside the Earth. When the lava cools down, it turns back into hard rock and can form islands.", questions: ["What is a volcano?", "What is lava?", "What happens when lava cools?", "What can volcanoes form in the ocean?"] },
+                { text: "The giant panda lives in the mountain forests of China. Their favorite food is bamboo, and they can eat for twelve hours a day! Pandas have black and white fur to help them hide in the snow and shadows.", questions: ["Where do giant pandas live?", "What is their favorite food?", "How long do they spend eating?", "Why do they have black and white fur?"] },
+                { text: "Computers are tools that help us process information. They can be used for writing, playing games, and learning new things. The first computers were so big they filled an entire room!", questions: ["What are computers used for?", "How big were the first computers?", "Name three things mentioned you can do on a computer.", "What do computers help us process?"] },
+                { text: "The Olympic Games are a major international sporting event. They happen every four years in a different city. Athletes from all over the world compete to win gold, silver, and bronze medals.", questions: ["How often do the Olympics happen?", "What do the athletes compete for?", "Where are the games held?", "Who participates in the games?"] },
+                { text: "Recycling is the process of turning old materials into new products. We can recycle paper, plastic, glass, and metal. This helps reduce trash and protects our environment and natural resources.", questions: ["What is recycling?", "Name four materials we can recycle.", "How does recycling help the Earth?", "What does it help reduce?"] },
+                { text: "Sharks are fast-swimming predators that live in every ocean. They do not have bones; instead, their skeleton is made of cartilage, which is lighter. Most sharks have several rows of sharp teeth.", questions: ["Where do sharks live?", "What is a shark's skeleton made of?", "How is cartilage different from bone?", "What is special about their teeth?"] },
+                { text: "The Statue of Liberty was a gift from France to the United States. It stands in New York Harbor and represents freedom. It is made of copper, which turned green over time because of the air.", questions: ["Who gave the Statue of Liberty to the U.S.?", "What does the statue represent?", "Where is it located?", "Why is the statue green?"] },
+                { text: "Butterflies go through four stages in their life cycle. It starts as an egg, then becomes a caterpillar. Next, it forms a chrysalis, and finally emerges as a beautiful butterfly.", questions: ["How many stages are in a butterfly's life cycle?", "What is the second stage called?", "What is a chrysalis?", "What happens at the very end?"] },
+                { text: "Castles were built in the Middle Ages to protect kings and lords. They often had thick stone walls and a moat filled with water. Some castles even had drawbridges that could be raised.", questions: ["When were castles built?", "Why were they built?", "Name two ways castles were protected.", "What is a drawbridge?"] },
+                { text: "The human heart is a powerful muscle that pumps blood through the body. It beats about 100,000 times every day. Exercise helps keep your heart strong and healthy by making it work harder.", questions: ["What type of organ is the heart?", "What is the heart's main job?", "How many times does it beat in a day?", "How does exercise help?"] },
+                { text: "Dinosaurs lived on Earth millions of years ago. Some were huge with long necks, while others were small and fast. Scientists learn about them by studying fossils found in the ground.", questions: ["When did dinosaurs live?", "Were all dinosaurs big?", "How do scientists learn about dinosaurs?", "What are fossils?"] },
+                { text: "The Amazon River is the second longest river in the world. It flows through the rainforest in South America. It carries more water than any other river and is home to pink dolphins.", questions: ["Where is the Amazon River?", "Is it the longest river?", "What is special about the amount of water it carries?", "What unique animal lives there?"] }
+            ]
+        };
+
+        const App = () => {
+            const [view, setView] = useState('generator');
+            const [config, setConfig] = useState({
+                type: 'math',
+                count: 10,
+                level: 'kindergarten'
+            });
+            const [data, setData] = useState(null);
+
+            const generateContent = () => {
+                const newData = [];
+                const { type, count, level } = config;
+
+                if (type === 'math') {
+                    for (let i = 0; i < count; i++) {
+                        let max = level === 'kindergarten' ? 10 : level === 'firstGrade' ? 20 : 100;
+                        let a = Math.floor(Math.random() * max) + 1;
+                        let b = Math.floor(Math.random() * max) + 1;
+                        let op = Math.random() > 0.5 ? '+' : '-';
+                        if (op === '-' && a < b) [a, b] = [b, a]; // Ensure positive results
+                        newData.push({ a, b, op });
+                    }
+                } else if (type === 'counting') {
+                    for (let i = 0; i < count; i++) {
+                        let num = level === 'kindergarten' ? Math.floor(Math.random() * 10) + 1 : Math.floor(Math.random() * 20) + 5;
+                        let symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+                        newData.push({ num, symbol });
+                    }
+                } else if (type === 'matching') {
+                    // Select range of pools based on grade level
+                    const availablePools = level === 'kindergarten' ? WORD_POOLS.slice(0, 4) : 
+                                          level === 'firstGrade' ? WORD_POOLS.slice(1, 7) : 
+                                          WORD_POOLS;
+                    
+                    // Pick unique lengths (one word from each selected length group)
+                    const shuffledPools = [...availablePools].sort(() => 0.5 - Math.random());
+                    const selectedItems = shuffledPools.slice(0, Math.min(count, shuffledPools.length)).map(p => {
+                        const word = p.words[Math.floor(Math.random() * p.words.length)];
+                        return { word, len: p.len };
+                    });
+
+                    const left = selectedItems.map(item => ({ id: item.word, label: item.word }));
+                    const right = selectedItems.map(item => ({ id: item.word, label: item.len })).sort(() => 0.5 - Math.random());
+                    newData.push({ left, right });
+                } else if (type === 'reading') {
+                    const pool = [...PASSAGES[level]].sort(() => 0.5 - Math.random());
+                    const selected = pool.slice(0, Math.min(count, pool.length));
+                    newData.push(...selected);
+                }
+
+                setData(newData);
+                setView('worksheet');
+                window.scrollTo(0, 0);
+            };
+
+            return (
+                <div>
+                    {view === 'generator' ? (
+                        <div className="container fade-in">
+                            <div className="card">
+                                <h1>Worksheet Generator</h1>
+                                
+                                <div className="form-group">
+                                    <label>Assignment Type</label>
+                                    <select 
+                                        value={config.type} 
+                                        onChange={(e) => {
+                                            const newType = e.target.value;
+                                            setConfig({
+                                                ...config, 
+                                                type: newType, 
+                                                count: newType === 'reading' ? Math.max(config.count, 2) : config.count
+                                            });
+                                        }}
+                                    >
+                                        <option value="math">Math Problems</option>
+                                        <option value="counting">Counting Objects</option>
+                                        <option value="matching">Bipartite Matching (Word to Length)</option>
+                                        <option value="reading">Reading Assignment</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Grade Level</label>
+                                    <select 
+                                        value={config.level} 
+                                        onChange={(e) => setConfig({...config, level: e.target.value})}
+                                    >
+                                        <option value="kindergarten">Kindergarten</option>
+                                        <option value="firstGrade">First Grade</option>
+                                        <option value="secondGrade">Second Grade</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>{config.type === 'reading' ? 'Number of Passages' : 'Number of Questions'}</label>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="30" 
+                                        value={config.count}
+                                        onChange={(e) => setConfig({...config, count: parseInt(e.target.value) || 1})}
+                                    />
+                                </div>
+
+                                <button className="generate-btn" onClick={generateContent}>
+                                    Generate Worksheet
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="worksheet-page">
+                            <div className="worksheet-header">
+                                <div>
+                                    <h2 style={{margin: 0}}>{config.type.charAt(0).toUpperCase() + config.type.slice(1)} Practice</h2>
+                                    <p style={{margin: '5px 0 0 0', color: '#666'}}>{config.level.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                </div>
+                                <div className="student-info">
+                                    Name: <span></span>
+                                </div>
+                            </div>
+
+                            {config.type === 'math' && (
+                                <div className="math-grid">
+                                    {data.map((prob, i) => (
+                                        <div key={i} className="math-problem">
+                                            <div>{prob.a}</div>
+                                            <div>{prob.op} {prob.b}</div>
+                                            <div className="math-line"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {config.type === 'counting' && (
+                                <div>
+                                    {data.map((item, i) => (
+                                        <div key={i} className="counting-item">
+                                            <div className="shapes-container">
+                                                {Array.from({length: item.num}).map((_, j) => (
+                                                    <span key={j} style={{fontSize: '24px'}}>{item.symbol}</span>
+                                                ))}
+                                            </div>
+                                            <div style={{width: '60px', height: '40px', border: '2px solid #000'}}></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {config.type === 'matching' && (
+                                <div className="matching-container">
+                                    <div className="matching-column">
+                                        <h3>Words</h3>
+                                        {data[0].left.map((item, i) => (
+                                            <div key={i} className="matching-item">{item.label}</div>
+                                        ))}
+                                    </div>
+                                    <div className="matching-column">
+                                        <h3>Number of Letters</h3>
+                                        {data[0].right.map((item, i) => (
+                                            <div key={i} className="matching-item">{item.label}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {config.type === 'reading' && (
+                                <div>
+                                    {data.map((passage, pIdx) => (
+                                        <div key={pIdx} style={{ 
+                                            marginBottom: '40px', 
+                                            paddingBottom: '20px', 
+                                            borderBottom: pIdx < data.length - 1 ? '1px dashed #ccc' : 'none' 
+                                        }}>
+                                            <div className="reading-passage">
+                                                {passage.text}
+                                            </div>
+                                            {passage.questions.map((q, i) => (
+                                                <div key={i} className="reading-question">
+                                                    <strong>Q{i+1}: {q}</strong>
+                                                    <div className="reading-line"></div>
+                                                    <div className="reading-line"></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button className="back-btn" onClick={() => setView('generator')}>
+                                ← Back to Generator
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
